@@ -66,6 +66,16 @@ class CanvasOnTouchListener : View.OnTouchListener {
         val x = targetX.roundToInt().coerceIn(0, surfaceWidth - 1)
         val y = targetY.roundToInt().coerceIn(0, surfaceHeight - 1)
 
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            android.util.Log.i(
+                "CemuDisplay",
+                "toque vista=${viewWidth.toInt()}x${viewHeight.toInt()} " +
+                    "bruto=(${event.getX(pointerIndex).toInt()},${event.getY(pointerIndex).toInt()}) " +
+                    "destino=($x,$y) superficie=${surfaceWidth}x$surfaceHeight " +
+                    "isTV=$isTV rotado=$rotateLeft",
+            )
+        }
+
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                 if (currentPointerId != -1 && pointerId != currentPointerId) {

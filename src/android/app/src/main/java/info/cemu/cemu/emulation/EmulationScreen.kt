@@ -471,60 +471,45 @@ private fun EmulationSurfaces(
     DisposableEffect(activity, padDisplay, usePadPresentation, sideMenuState.isExternalScreenRotatedLeft) {
         val activityNonNull = activity ?: return@DisposableEffect onDispose {}
         if (!usePadPresentation) {
+            PadSurfaceBridge.clear()
             return@DisposableEffect onDispose {}
         }
         val padDisplayNonNull = padDisplay
 
         NativeEmulation.setExternalScreenRotatedLeft(sideMenuState.isExternalScreenRotatedLeft)
 
-        val padPresentation = PadPresentation(
-            context = activityNonNull,
-            display = padDisplayNonNull,
-            rotateLeft = sideMenuState.isExternalScreenRotatedLeft,
-            holderCallback = viewModel.padHolderCallback,
-            touchListener = padPresentationTouchListener,
+        // El GamePad se muestra como actividad en la segunda pantalla, no como
+        // Presentation: en consolas de dos paneles integrados (AYANEO Pocket DS) el
+        // lanzador del sistema retiene ese panel y una Presentation nunca llega a
+        // componerse en el, mientras que una actividad si lo desplaza.
+        PadSurfaceBridge.holderCallback = viewModel.padHolderCallback
+        PadSurfaceBridge.touchListener = padPresentationTouchListener
+        PadSurfaceBridge.rotateLeft = sideMenuState.isExternalScreenRotatedLeft
+
+        val options = android.app.ActivityOptions.makeBasic().apply {
+            launchDisplayId = padDisplayNonNull.displayId
+        }
+        val intent = android.content.Intent(activityNonNull, PadActivity::class.java).apply {
+            addFlags(
+                android.content.Intent.FLAG_ACTIVITY_NEW_TASK or
+                    android.content.Intent.FLAG_ACTIVITY_MULTIPLE_TASK or
+                    android.content.Intent.FLAG_ACTIVITY_NO_ANIMATION,
+            )
+        }
+
+        android.util.Log.i(
+            "CemuDisplay",
+            "lanzando PadActivity en la pantalla ${padDisplayNonNull.displayId}",
         )
-
-        padPresentation.setOnDismissListener {
-            android.util.Log.i("CemuDisplay", "PadPresentation DISMISS")
-        }
-        padPresentation.setOnCancelListener {
-            android.util.Log.i("CemuDisplay", "PadPresentation CANCEL")
-        }
-
-        android.util.Log.i("CemuDisplay", "mostrando PadPresentation en ${padDisplayNonNull.displayId}")
         try {
-            padPresentation.show()
-            android.util.Log.i("CemuDisplay", "PadPresentation mostrada OK, isShowing=${padPresentation.isShowing}")
+            activityNonNull.startActivity(intent, options.toBundle())
         } catch (e: Throwable) {
-            android.util.Log.e("CemuDisplay", "PadPresentation fallo: $e")
+            android.util.Log.e("CemuDisplay", "no se pudo lanzar PadActivity: $e")
         }
-
-        // En la Pocket DS la ventana se queda sin aparecer aunque show() no falle.
-        // Vigilamos unos segundos y reintentamos, dejando traza de lo que pasa.
-        val vigilante = android.os.Handler(android.os.Looper.getMainLooper())
-        var intentos = 0
-        val revision = object : Runnable {
-            override fun run() {
-                val visible = padPresentation.isShowing
-                android.util.Log.i("CemuDisplay", "revision $intentos isShowing=$visible")
-                if (!visible && intentos < 6) {
-                    intentos++
-                    try {
-                        padPresentation.show()
-                        android.util.Log.i("CemuDisplay", "reintento $intentos hecho, isShowing=${padPresentation.isShowing}")
-                    } catch (e: Throwable) {
-                        android.util.Log.e("CemuDisplay", "reintento $intentos fallo: $e")
-                    }
-                }
-                if (intentos < 6) vigilante.postDelayed(this, 2000)
-            }
-        }
-        vigilante.postDelayed(revision, 2000)
 
         onDispose {
-            vigilante.removeCallbacks(revision)
-            padPresentation.dismiss()
+            PadActivity.cerrar()
+            PadSurfaceBridge.clear()
         }
     }
 

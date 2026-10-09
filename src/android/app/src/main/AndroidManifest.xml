@@ -55,6 +55,15 @@
                 <data android:pathPattern=".*\\.rpx" />
             </intent-filter>
         </activity>
+        <activity
+            android:name=".emulation.PadActivity"
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|density"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:launchMode="singleTop"
+            android:resizeableActivity="true"
+            android:taskAffinity="info.cemu.cemu.pad"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen" />
 
         <provider
             android:name=".provider.DocumentsProvider"
