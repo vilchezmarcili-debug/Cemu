@@ -485,15 +485,47 @@ private fun EmulationSurfaces(
             touchListener = padPresentationTouchListener,
         )
 
+        padPresentation.setOnDismissListener {
+            android.util.Log.i("CemuDisplay", "PadPresentation DISMISS")
+        }
+        padPresentation.setOnCancelListener {
+            android.util.Log.i("CemuDisplay", "PadPresentation CANCEL")
+        }
+
         android.util.Log.i("CemuDisplay", "mostrando PadPresentation en ${padDisplayNonNull.displayId}")
         try {
             padPresentation.show()
-            android.util.Log.i("CemuDisplay", "PadPresentation mostrada OK")
+            android.util.Log.i("CemuDisplay", "PadPresentation mostrada OK, isShowing=${padPresentation.isShowing}")
         } catch (e: Throwable) {
             android.util.Log.e("CemuDisplay", "PadPresentation fallo: $e")
         }
 
-        onDispose { padPresentation.dismiss() }
+        // En la Pocket DS la ventana se queda sin aparecer aunque show() no falle.
+        // Vigilamos unos segundos y reintentamos, dejando traza de lo que pasa.
+        val vigilante = android.os.Handler(android.os.Looper.getMainLooper())
+        var intentos = 0
+        val revision = object : Runnable {
+            override fun run() {
+                val visible = padPresentation.isShowing
+                android.util.Log.i("CemuDisplay", "revision $intentos isShowing=$visible")
+                if (!visible && intentos < 6) {
+                    intentos++
+                    try {
+                        padPresentation.show()
+                        android.util.Log.i("CemuDisplay", "reintento $intentos hecho, isShowing=${padPresentation.isShowing}")
+                    } catch (e: Throwable) {
+                        android.util.Log.e("CemuDisplay", "reintento $intentos fallo: $e")
+                    }
+                }
+                if (intentos < 6) vigilante.postDelayed(this, 2000)
+            }
+        }
+        vigilante.postDelayed(revision, 2000)
+
+        onDispose {
+            vigilante.removeCallbacks(revision)
+            padPresentation.dismiss()
+        }
     }
 
     LinearLayout(currentGamePadPosition) { itemModifier ->
