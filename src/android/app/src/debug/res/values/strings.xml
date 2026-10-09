@@ -1,3 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">Cemu debug</string>
+    <!-- Nombre distinto en el icono para no confundir la version de pruebas
+         con el Cemu normal, que esta instalado a la vez. -->
+    <string name="app_name" translatable="false">Cemu DS</string>
 </resources>
