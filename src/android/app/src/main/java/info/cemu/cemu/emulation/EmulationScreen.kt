@@ -452,6 +452,13 @@ private fun EmulationSurfaces(
 
     val rotatePresentationTouch = usePadPresentation && sideMenuState.isExternalScreenRotatedLeft
 
+    android.util.Log.i(
+        "CemuDisplay",
+        "padVisible=$isPadVisibleEffective onExternal=${sideMenuState.isPadOnExternalDisplay} " +
+            "padDisplay=${padDisplay?.displayId} usePresentation=$usePadPresentation " +
+            "emuInit=$isEmulationInitialized",
+    )
+
     LaunchedEffect(isPadTargetingTV, padTargetDimensions, rotatePresentationTouch) {
         padPresentationTouchListener.updateConfiguration(
             isTv = isPadTargetingTV,
@@ -478,7 +485,13 @@ private fun EmulationSurfaces(
             touchListener = padPresentationTouchListener,
         )
 
-        padPresentation.show()
+        android.util.Log.i("CemuDisplay", "mostrando PadPresentation en ${padDisplayNonNull.displayId}")
+        try {
+            padPresentation.show()
+            android.util.Log.i("CemuDisplay", "PadPresentation mostrada OK")
+        } catch (e: Throwable) {
+            android.util.Log.e("CemuDisplay", "PadPresentation fallo: $e")
+        }
 
         onDispose { padPresentation.dismiss() }
     }
