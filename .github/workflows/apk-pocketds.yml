@@ -44,9 +44,14 @@ jobs:
           done
 
       - name: Build debug APK
+        env:
+          ANDROID_KEY_STORE_PASSWORD: pocketds2026
+          ANDROID_KEY_ALIAS: pocketds
         run: |
           export JAVA_HOME=$JAVA_HOME_21_X64
           cd ./src/android
+          base64 --decode pocketds-keystore.b64 > pocketds.jks
+          export ANDROID_STORE_FILE=$(pwd)/pocketds.jks
           ./gradlew assembleDebug --no-daemon
 
       - name: Upload APK

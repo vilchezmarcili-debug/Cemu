@@ -83,6 +83,11 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ".debug"
+            // Use the provided keystore for debug builds too, so successive test
+            // builds can be installed over each other without uninstalling.
+            if (keystoreFilePath != null) {
+                signingConfig = signingConfigs.getByName("release")
+            }
         }
         release {
             isMinifyEnabled = true
