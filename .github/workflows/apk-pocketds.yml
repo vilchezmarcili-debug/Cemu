@@ -1,0 +1,57 @@
+name: APK Pocket DS
+
+on:
+  push:
+    branches: [android-port-dual]
+  workflow_dispatch:
+
+env:
+  VCPKG_ROOT: "${{github.workspace}}/dependencies/vcpkg"
+  VCPKG_FORCE_DOWNLOADED_BINARIES: true
+
+jobs:
+  build-android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          submodules: "recursive"
+          fetch-depth: 0
+
+      - name: Install system dependencies
+        run: |
+          sudo apt update -qq
+          sudo apt install -y gettext
+
+      - name: Cache vcpkg binaries
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/vcpkg/archives
+          key: vcpkg-android-${{ hashFiles('vcpkg.json') }}
+          restore-keys: vcpkg-android-
+
+      - name: Uncompile message catalogs
+        run: |
+          for mo_file in bin/resources/*/cemu.mo
+          do
+            language_code=$(basename $(dirname $mo_file))
+            po_file=src/android/app/src/main/assets/translations/$language_code/cemu.po
+            mkdir -p $(dirname $po_file)
+            msgunfmt $mo_file -o $po_file || echo "skip $mo_file"
+          done
+
+      - name: Build debug APK
+        run: |
+          export JAVA_HOME=$JAVA_HOME_21_X64
+          cd ./src/android
+          ./gradlew assembleDebug --no-daemon
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: cemu-pocketds-apk
+          path: src/android/app/build/outputs/apk/**/*.apk
+          if-no-files-found: error

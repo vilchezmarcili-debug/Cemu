@@ -35,11 +35,14 @@ object DisplayUtils {
         val hasPresentationFlag = (flags and Display.FLAG_PRESENTATION) == Display.FLAG_PRESENTATION
         val isPrivateDisplay = (flags and Display.FLAG_PRIVATE) == Display.FLAG_PRIVATE
         val hasUsableMode = mode.physicalWidth > 0 && mode.physicalHeight > 0
-        val hasDifferentName = internalDisplay == null || name != internalDisplay.name
+        // Some handhelds (e.g. AYANEO Pocket DS) report both built-in panels with the
+        // same display name, so comparing names rejects a perfectly usable second
+        // screen. Identity is already established by displayId.
+        val isDifferentDisplay = internalDisplay == null || displayId != internalDisplay.displayId
         return isValid &&
             state == Display.STATE_ON &&
             !isPrivateDisplay &&
-            hasDifferentName &&
+            isDifferentDisplay &&
             hasPresentationFlag &&
             hasUsableMode
     }
