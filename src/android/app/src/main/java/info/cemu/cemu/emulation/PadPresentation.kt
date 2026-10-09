@@ -42,7 +42,33 @@ class PadPresentation(
             setOnTouchListener(touchListener)
         }
 
-        setContentView(surfaceView)
+        // Diagnostico Pocket DS: fondo negro opaco y una marca roja en la esquina.
+        // Si en la pantalla de abajo se ve el negro y la marca, la ventana se compone
+        // bien y el problema esta solo en el contenido de la superficie.
+        val root = android.widget.FrameLayout(context).apply {
+            layoutParams = ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            )
+            setBackgroundColor(android.graphics.Color.BLACK)
+            addView(surfaceView)
+            addView(
+                android.view.View(context).apply {
+                    setBackgroundColor(android.graphics.Color.RED)
+                    layoutParams = android.widget.FrameLayout.LayoutParams(80, 80).apply {
+                        gravity = android.view.Gravity.TOP or android.view.Gravity.START
+                    }
+                }
+            )
+        }
+
+        window?.setBackgroundDrawable(android.graphics.drawable.ColorDrawable(android.graphics.Color.BLACK))
+        setContentView(root)
+        android.util.Log.i(
+            "CemuDisplay",
+            "PadPresentation onCreate: superficie fija ${surfaceWidth}x$surfaceHeight " +
+                "en pantalla ${display.displayId}",
+        )
     }
 
     private fun computeSurfaceSize(width: Int, height: Int, rotateLeft: Boolean): Pair<Int, Int> {

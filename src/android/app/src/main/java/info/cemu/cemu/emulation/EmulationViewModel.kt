@@ -187,7 +187,14 @@ class EmulationViewModel(
     private inner class CanvasSurfaceHolderCallback(val isMainCanvas: Boolean) :
         SurfaceHolder.Callback {
 
-        override fun surfaceCreated(surfaceHolder: SurfaceHolder) {}
+        private val canvasName = if (isMainCanvas) "MAIN" else "PAD"
+
+        override fun surfaceCreated(surfaceHolder: SurfaceHolder) {
+            android.util.Log.i(
+                "CemuDisplay",
+                "$canvasName surfaceCreated valid=${surfaceHolder.surface?.isValid}",
+            )
+        }
 
         override fun surfaceChanged(
             surfaceHolder: SurfaceHolder,
@@ -195,6 +202,11 @@ class EmulationViewModel(
             width: Int,
             height: Int,
         ) {
+            android.util.Log.i(
+                "CemuDisplay",
+                "$canvasName surfaceChanged ${width}x$height fmt=$format " +
+                    "yaPuesta=${setSurfaces.get(isMainCanvas)}",
+            )
             try {
                 NativeEmulation.setSurfaceSize(width, height, isMainCanvas)
                 updateSurfaceDimensions(isMainCanvas, width, height)
@@ -213,17 +225,27 @@ class EmulationViewModel(
                 setSurfaces.set(isMainCanvas, true)
 
                 val padSurfaceWasSet = setSurfaces.get(isMain = false)
-                if ((!isMainCanvas && !mainSurfaceWasDestroyed) || (isMainCanvas && padSurfaceWasSet)) {
+                val initPad =
+                    (!isMainCanvas && !mainSurfaceWasDestroyed) || (isMainCanvas && padSurfaceWasSet)
+                android.util.Log.i(
+                    "CemuDisplay",
+                    "$canvasName setSurface hecho, mainDestruida=$mainSurfaceWasDestroyed " +
+                        "padPuesta=$padSurfaceWasSet initPad=$initPad",
+                )
+                if (initPad) {
                     NativeEmulation.initializeSurface(isMainCanvas = false)
+                    android.util.Log.i("CemuDisplay", "initializeSurface(PAD) devuelto")
                 }
 
                 destroyedSurfaces.set(isMainCanvas, false)
             } catch (exception: NativeException) {
+                android.util.Log.e("CemuDisplay", "$canvasName fallo nativo: ${exception.message}")
                 _emulationError.value = NativeError.SurfaceCreationError(exception.message!!)
             }
         }
 
         override fun surfaceDestroyed(surfaceHolder: SurfaceHolder) {
+            android.util.Log.i("CemuDisplay", "$canvasName surfaceDestroyed")
             if (setSurfaces.get(isMain = false)) {
                 NativeEmulation.clearPadSurface()
                 setSurfaces.set(isMain = false, false)
