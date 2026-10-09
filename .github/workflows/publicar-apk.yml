@@ -16,7 +16,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: cemu-pocketds-apk
-          run-id: 37918654891
+          run-id: 37946270640
           github-token: ${{ secrets.GITHUB_TOKEN }}
           path: apk
 
@@ -29,7 +29,7 @@ jobs:
         run: |
           FILE=$(find apk -name "*.apk" | head -1)
           echo "subiendo $FILE"
-          gh release create pocketds-prueba7 "$FILE" \
+          gh release create pocketds-prueba8 "$FILE" \
             --repo "${{ github.repository }}" \
             --title "Cemu Pocket DS (prueba)" \
             --notes "APK de depuracion con el arreglo de la segunda pantalla."
