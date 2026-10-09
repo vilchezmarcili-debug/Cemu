@@ -3,9 +3,11 @@ package info.cemu.cemu.common.android.display
 import android.app.Activity
 import android.content.Context
 import android.hardware.display.DisplayManager
+import android.util.Log
 import android.view.Display
 
 object DisplayUtils {
+    private const val TAG = "CemuDisplay"
     private var launchDisplayId: Int? = null
 
     fun init(activity: Activity) {
@@ -25,10 +27,32 @@ object DisplayUtils {
         val displayManager = context.getSystemService(Context.DISPLAY_SERVICE) as DisplayManager
         val internalDisplay = getInternalDisplay(context)
         val internalId = internalDisplay?.displayId ?: launchDisplayId
-        return displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
-            .firstOrNull { display ->
-                display.displayId != internalId && display.isUsableExternalDisplay(internalDisplay)
-            }
+
+        // Handhelds with two built-in panels (e.g. AYANEO Pocket DS) keep both displays in
+        // the same display group, so the second panel is never reported under
+        // DISPLAY_CATEGORY_PRESENTATION. Consider every display and let the capability
+        // checks below decide whether it can host the GamePad view.
+        val candidates = LinkedHashMap<Int, Display>()
+        displayManager.getDisplays(DisplayManager.DISPLAY_CATEGORY_PRESENTATION)
+            .forEach { candidates[it.displayId] = it }
+        displayManager.displays.forEach { candidates.putIfAbsent(it.displayId, it) }
+
+        candidates.values.forEach { d ->
+            Log.i(
+                TAG,
+                "candidate id=${d.displayId} name='${d.name}' flags=0x${d.flags.toString(16)} " +
+                    "state=${d.state} valid=${d.isValid} " +
+                    "mode=${d.mode.physicalWidth}x${d.mode.physicalHeight} " +
+                    "usable=${d.isUsableExternalDisplay(internalDisplay)}",
+            )
+        }
+        Log.i(TAG, "internalId=$internalId launchDisplayId=$launchDisplayId")
+
+        val chosen = candidates.values.firstOrNull { display ->
+            display.displayId != internalId && display.isUsableExternalDisplay(internalDisplay)
+        }
+        Log.i(TAG, "chosen external display = ${chosen?.displayId}")
+        return chosen
     }
 
     private fun Display.isUsableExternalDisplay(internalDisplay: Display?): Boolean {
