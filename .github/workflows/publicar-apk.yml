@@ -1,0 +1,35 @@
+name: Publicar APK
+
+on:
+  push:
+    branches: [publicar]
+
+permissions:
+  contents: write
+  actions: read
+
+jobs:
+  publicar:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Descargar el APK ya compilado
+        uses: actions/download-artifact@v4
+        with:
+          name: cemu-pocketds-apk
+          run-id: 37882292259
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          path: apk
+
+      - name: Ver que ha llegado
+        run: find apk -type f
+
+      - name: Publicar como release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILE=$(find apk -name "*.apk" | head -1)
+          echo "subiendo $FILE"
+          gh release create pocketds-prueba "$FILE" \
+            --repo "${{ github.repository }}" \
+            --title "Cemu Pocket DS (prueba)" \
+            --notes "APK de depuracion con el arreglo de la segunda pantalla."
